@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>〇〇銀行｜住所変更手続き（非対面）デモ</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', sans-serif; background: #F0F4F8; color: #1a202c; min-height: 100vh; }
+
+/* Header */
+.site-header { background: #0D3B8C; padding: 12px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+.logo { width: 36px; height: 36px; background: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #0D3B8C; flex-shrink: 0; }
+.site-title { color: #fff; font-size: 15px; font-weight: 600; }
+.site-sub { color: #93C5FD; font-size: 11px; margin-top: 1px; }
+.demo-badge { margin-left: auto; background: #F59E0B; color: #fff; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.05em; }
+
+/* Main */
+.main { max-width: 680px; margin: 0 auto; padding: 24px 16px 60px; }
+
+/* Progress steps */
+.steps { display: flex; align-items: flex-start; margin-bottom: 24px; }
+.step-item { flex: 1; text-align: center; position: relative; }
+.step-item:not(:last-child)::after { content: ''; position: absolute; top: 16px; left: 50%; width: 100%; height: 2px; background: #CBD5E1; z-index: 0; }
+.step-item.done:not(:last-child)::after { background: #0D3B8C; }
+.step-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; margin: 0 auto 6px; position: relative; z-index: 1; transition: all 0.3s; }
+.step-item.done .step-circle { background: #0D3B8C; color: #fff; }
+.step-item.active .step-circle { background: #0D3B8C; color: #fff; box-shadow: 0 0 0 4px rgba(13,59,140,0.2); }
+.step-item.pending .step-circle { background: #E2E8F0; color: #94A3B8; border: 2px solid #CBD5E1; }
+.step-label { font-size: 10px; color: #64748B; line-height: 1.4; }
+.step-item.active .step-label { color: #0D3B8C; font-weight: 600; }
+.step-item.done .step-label { color: #0D3B8C; }
+
+/* Cards */
+.card { background: #fff; border-radius: 16px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04); }
+.card-header { padding: 14px 20px; border-bottom: 1px solid #F1F5F9; display: flex; align-items: center; gap: 10px; background: #F8FAFF; }
+.card-num { width: 26px; height: 26px; border-radius: 50%; background: #0D3B8C; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.card-num.gray { background: #94A3B8; }
+.card-title { font-size: 14px; font-weight: 700; color: #1E293B; }
+.card-sub { margin-left: auto; font-size: 11px; color: #94A3B8; }
+.card-body { padding: 20px; }
+
+/* Form fields */
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.field-grid.single { grid-template-columns: 1fr; }
+.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+.field label { font-size: 11px; color: #64748B; font-weight: 500; }
+.field label .req { color: #EF4444; font-size: 10px; margin-left: 4px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 4px; padding: 1px 4px; }
+.field input { height: 42px; border: 1.5px solid #E2E8F0; border-radius: 10px; padding: 0 12px; font-size: 14px; color: #1E293B; background: #fff; transition: border-color 0.2s; font-family: inherit; }
+.field input:focus { outline: none; border-color: #0D3B8C; box-shadow: 0 0 0 3px rgba(13,59,140,0.1); }
+.field input.filled { border-color: #93C5FD; background: #F0F6FF; }
+.hint { font-size: 10px; color: #94A3B8; margin-top: 3px; }
+
+/* JPKI section */
+.jpki-panel { background: linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%); border: 1.5px dashed #93C5FD; border-radius: 14px; padding: 28px 20px; text-align: center; }
+.jpki-icon { width: 72px; height: 72px; background: #fff; border-radius: 18px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(13,59,140,0.12); }
+.jpki-title { font-size: 16px; font-weight: 700; color: #1E40AF; margin-bottom: 8px; }
+.jpki-desc { font-size: 13px; color: #475569; line-height: 1.7; margin-bottom: 20px; }
+.jpki-btn { display: inline-flex; align-items: center; gap: 8px; background: #0D3B8C; color: #fff; border: none; border-radius: 12px; padding: 0 28px; height: 48px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s, transform 0.1s; font-family: inherit; }
+.jpki-btn:hover { background: #1D4ED8; }
+.jpki-btn:active { transform: scale(0.98); }
+.jpki-steps { display: flex; justify-content: center; gap: 6px; margin-top: 20px; flex-wrap: wrap; align-items: center; }
+.jpki-step { font-size: 11px; color: #64748B; display: flex; align-items: center; gap: 4px; }
+.jpki-step::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #0D3B8C; display: block; }
+.jpki-arrow { color: #CBD5E1; font-size: 12px; }
+
+/* Loading */
+.loading { display: none; align-items: center; gap: 12px; padding: 16px; background: #EFF6FF; border-radius: 12px; margin-top: 16px; }
+.spinner { width: 20px; height: 20px; border: 2.5px solid #BFDBFE; border-top-color: #0D3B8C; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 13px; color: #1D4ED8; font-weight: 500; }
+
+/* Result boxes */
+.result-success { background: #F0FDF4; border: 1.5px solid #86EFAC; border-radius: 12px; padding: 16px; margin-top: 16px; }
+.result-info { background: #EFF6FF; border: 1.5px solid #93C5FD; border-radius: 12px; padding: 16px; margin-top: 12px; }
+.result-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.result-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+.result-icon.green { background: #16A34A; color: #fff; }
+.result-icon.blue { background: #1D4ED8; color: #fff; }
+.result-label { font-size: 13px; font-weight: 700; }
+.result-label.green { color: #15803D; }
+.result-label.blue { color: #1D4ED8; }
+.result-badge { margin-left: auto; font-size: 10px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+.result-badge.green { background: #16A34A; color: #fff; }
+.result-badge.blue { background: #1D4ED8; color: #fff; }
+.result-table { width: 100%; border-collapse: collapse; }
+.result-table td { padding: 5px 0; font-size: 13px; }
+.result-table td:first-child { color: #64748B; width: 90px; }
+.result-table td:last-child { font-weight: 600; color: #1E293B; }
+.result-table td:last-child.blue { color: #1D4ED8; }
+
+/* Confirm */
+.confirm-section-label { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; margin-top: 16px; }
+.confirm-section-label:first-child { margin-top: 0; }
+.confirm-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #F1F5F9; gap: 12px; }
+.confirm-row:last-child { border-bottom: none; }
+.confirm-key { font-size: 13px; color: #64748B; flex-shrink: 0; width: 90px; }
+.confirm-val { font-size: 13px; font-weight: 600; color: #1E293B; text-align: right; }
+.confirm-val.blue { color: #1D4ED8; }
+.confirm-val.green { color: #16A34A; }
+
+/* Buttons */
+.btn-row { display: flex; gap: 10px; margin-top: 20px; }
+.btn-primary { flex: 1; height: 50px; background: #0D3B8C; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.2s, transform 0.1s; font-family: inherit; }
+.btn-primary:hover { background: #1D4ED8; }
+.btn-primary:active { transform: scale(0.99); }
+.btn-primary.green { background: #16A34A; }
+.btn-primary.green:hover { background: #15803D; }
+.btn-secondary { height: 50px; padding: 0 20px; background: #fff; color: #64748B; border: 1.5px solid #E2E8F0; border-radius: 12px; font-size: 14px; cursor: pointer; font-family: inherit; }
+.btn-secondary:hover { background: #F8FAFC; }
+
+/* Notice */
+.notice { background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 10px; padding: 12px 16px; font-size: 12px; color: #92400E; line-height: 1.7; margin-top: 16px; }
+.notice strong { font-weight: 700; }
+
+/* Success screen */
+.success-screen { text-align: center; padding: 40px 20px; }
+.success-circle { width: 80px; height: 80px; background: #F0FDF4; border: 3px solid #86EFAC; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 32px; }
+.success-title { font-size: 22px; font-weight: 700; color: #15803D; margin-bottom: 10px; }
+.success-sub { font-size: 14px; color: #475569; line-height: 1.7; }
+.success-ref { margin: 20px auto; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 14px 20px; max-width: 320px; }
+.success-ref-label { font-size: 11px; color: #94A3B8; margin-bottom: 4px; }
+.success-ref-num { font-size: 18px; font-weight: 700; color: #0D3B8C; letter-spacing: 0.1em; }
+
+/* Screens */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* Security badge */
+.security { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 24px; font-size: 11px; color: #94A3B8; }
+
+/* Responsive */
+@media (max-width: 480px) {
+  .field-grid { grid-template-columns: 1fr; }
+  .main { padding: 16px 12px 60px; }
+  .jpki-panel { padding: 20px 16px; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo">銀</div>
+  <div>
+    <div class="site-title">〇〇銀行　住所変更手続き</div>
+    <div class="site-sub">非対面オンライン申請</div>
+  </div>
+  <div class="demo-badge">DEMO</div>
+</header>
+
+<main class="main">
+
+  <!-- STEP INDICATOR -->
+  <div class="steps" id="step-indicator">
+    <div class="step-item active" id="si-1">
+      <div class="step-circle">1</div>
+      <div class="step-label">本人情報<br>入力</div>
+    </div>
+    <div class="step-item pending" id="si-2">
+      <div class="step-circle">2</div>
+      <div class="step-label">JPKI<br>本人確認</div>
+    </div>
+    <div class="step-item pending" id="si-3">
+      <div class="step-circle">3</div>
+      <div class="step-label">新住所<br>取得</div>
+    </div>
+    <div class="step-item pending" id="si-4">
+      <div class="step-circle">4</div>
+      <div class="step-label">確認・<br>送信</div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 1: 本人情報入力 ── -->
+  <div class="screen active" id="screen-1">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-num">1</div>
+        <div class="card-title">ご本人情報の入力</div>
+        <div class="card-sub">必須項目をご記入ください</div>
+      </div>
+      <div class="card-body">
+        <div class="field-grid">
+          <div class="field">
+            <label>氏名（漢字）<span class="req">必須</span></label>
+            <input type="text" class="filled" value="山田　太郎" />
+          </div>
+          <div class="field">
+            <label>氏名（フリガナ）<span class="req">必須</span></label>
+            <input type="text" class="filled" value="ヤマダ　タロウ" />
+          </div>
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label>口座番号<span class="req">必須</span></label>
+            <input type="text" class="filled" value="1234567" />
+            <div class="hint">普通預金口座番号（7桁）</div>
+          </div>
+          <div class="field">
+            <label>生年月日<span class="req">必須</span></label>
+            <input type="text" class="filled" value="1985年 4月 12日" />
+          </div>
+        </div>
+        <div class="field">
+          <label>携帯電話番号<span class="req">必須</span></label>
+          <input type="text" class="filled" value="090-XXXX-XXXX" style="max-width:220px;" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-num gray">旧</div>
+        <div class="card-title">現在のご住所（変更前）</div>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>郵便番号<span class="req">必須</span></label>
+          <input type="text" class="filled" value="100-0001" style="max-width:160px;" />
+        </div>
+        <div class="field">
+          <label>都道府県・市区町村<span class="req">必須</span></label>
+          <input type="text" class="filled" value="東京都千代田区千代田" />
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label>丁目・番地<span class="req">必須</span></label>
+            <input type="text" class="filled" value="1-1" />
+          </div>
+          <div class="field">
+            <label>建物名・部屋番号</label>
+            <input type="text" placeholder="任意" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" onclick="goTo(2)">次へ：本人確認へ進む　→</button>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 2: JPKI ── -->
+  <div class="screen" id="screen-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-num">2</div>
+        <div class="card-title">マイナンバーカードで本人確認</div>
+        <div class="card-sub">リキッド社 JPKI</div>
+      </div>
+      <div class="card-body">
+        <div class="jpki-panel">
+          <div class="jpki-icon">
+            <svg width="40" height="28" viewBox="0 0 40 28" fill="none">
+              <rect width="40" height="28" rx="3" fill="#1A5276"/>
+              <rect x="2" y="2" width="36" height="6" rx="1" fill="#2471A3"/>
+              <text x="20" y="8" font-size="5" fill="white" text-anchor="middle" font-family="sans-serif">個人番号カード</text>
+              <rect x="3" y="11" width="12" height="14" rx="1" fill="#AED6F1"/>
+              <circle cx="9" cy="16" r="3" fill="#85C1E9"/>
+              <rect x="3" y="21" width="12" height="4" rx="0" fill="#7FB3D3"/>
+              <rect x="18" y="11" width="19" height="3" rx="1" fill="#5D9EC5"/>
+              <rect x="18" y="16" width="14" height="2.5" rx="1" fill="#5D9EC5"/>
+              <rect x="18" y="20" width="16" height="2.5" rx="1" fill="#5D9EC5"/>
+            </svg>
+          </div>
+          <div class="jpki-title">JPKIによる本人確認</div>
+          <div class="jpki-desc">
+            マイナンバーカードのICチップを読み取り、<br>
+            本人確認と新しいご住所を自動取得します。<br>
+            カードとスマートフォンをご準備ください。
+          </div>
+          <button class="jpki-btn" onclick="startJPKI()">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1" y="3" width="16" height="12" rx="2" stroke="white" stroke-width="1.5"/><circle cx="6" cy="9" r="2.5" stroke="white" stroke-width="1.2"/><path d="M10 7h6M10 9h5M10 11h6" stroke="white" stroke-width="1"/></svg>
+            マイナンバーカードを読み取る
+          </button>
+          <div class="jpki-steps">
+            <div class="jpki-step">スマホでQRコードを読取</div>
+            <div class="jpki-arrow">›</div>
+            <div class="jpki-step">暗証番号を入力</div>
+            <div class="jpki-arrow">›</div>
+            <div class="jpki-step">カードをかざす</div>
+          </div>
+        </div>
+
+        <div class="loading" id="jpki-loading">
+          <div class="spinner"></div>
+          <div class="loading-text">マイナンバーカードを読み取り中... しばらくお待ちください</div>
+        </div>
+
+        <div id="jpki-result" style="display:none;">
+          <div class="result-success">
+            <div class="result-header">
+              <div class="result-icon green">✓</div>
+              <div class="result-label green">本人確認が完了しました</div>
+              <div class="result-badge green">JPKI認証済み</div>
+            </div>
+            <table class="result-table">
+              <tr><td>氏名</td><td>山田 太郎</td></tr>
+              <tr><td>生年月日</td><td>1985年4月12日</td></tr>
+              <tr><td>有効期限</td><td>2030年3月31日</td></tr>
+            </table>
+          </div>
+
+          <div class="result-info">
+            <div class="result-header">
+              <div class="result-icon blue">✓</div>
+              <div class="result-label blue">新住所を取得しました</div>
+              <div class="result-badge blue">住民基本台帳連携</div>
+            </div>
+            <table class="result-table">
+              <tr><td>新住所</td><td class="blue">神奈川県横浜市中区山下町1-1<br>山下マンション 305号室</td></tr>
+              <tr><td>郵便番号</td><td class="blue">231-0023</td></tr>
+              <tr><td>取得日時</td><td>2025年○月○日　○○:○○</td></tr>
+            </table>
+          </div>
+
+          <div class="notice">
+            <strong>ご確認ください：</strong>上記の新住所はマイナンバーカードの住民票情報から自動取得しました。内容をご確認のうえ、次のステップへお進みください。
+          </div>
+
+          <div class="btn-row">
+            <button class="btn-secondary" onclick="goTo(1)">戻る</button>
+            <button class="btn-primary" onclick="goTo(3)">内容確認へ進む　→</button>
+          </div>
+        </div>
+
+        <div id="jpki-before-result">
+          <div class="btn-row" style="margin-top:16px;">
+            <button class="btn-secondary" onclick="goTo(1)">戻る</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 3: 確認・送信 ── -->
+  <div class="screen" id="screen-3">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-num">3</div>
+        <div class="card-title">変更内容の確認</div>
+        <div class="card-sub">内容を確認して送信してください</div>
+      </div>
+      <div class="card-body">
+        <div class="confirm-section-label">ご本人情報</div>
+        <div class="confirm-row">
+          <span class="confirm-key">氏名</span>
+          <span class="confirm-val">山田 太郎（ヤマダ タロウ）</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-key">口座番号</span>
+          <span class="confirm-val">普通預金　1234567</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-key">生年月日</span>
+          <span class="confirm-val">1985年4月12日</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-key">本人確認</span>
+          <span class="confirm-val green">JPKI認証済み ✓</span>
+        </div>
+
+        <div class="confirm-section-label" style="margin-top:20px;">住所変更内容</div>
+        <div class="confirm-row">
+          <span class="confirm-key">変更前</span>
+          <span class="confirm-val">東京都千代田区千代田1-1</span>
+        </div>
+        <div class="confirm-row">
+          <span class="confirm-key">変更後</span>
+          <span class="confirm-val blue">神奈川県横浜市中区山下町1-1<br>山下マンション 305号室</span>
+        </div>
+
+        <div class="notice" style="margin-top:20px;">
+          <strong>注意：</strong>送信後、担当行員が内容を確認いたします。手続き完了まで1〜2営業日かかる場合があります。完了後にSMS・メールにてご連絡します。
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goTo(2)">戻る</button>
+      <button class="btn-primary green" onclick="goTo(4)">この内容で申請を送信する　→</button>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 4: 完了 ── -->
+  <div class="screen" id="screen-4">
+    <div class="card">
+      <div class="card-body">
+        <div class="success-screen">
+          <div class="success-circle">✓</div>
+          <div class="success-title">申請を受け付けました</div>
+          <div class="success-sub">
+            担当行員が内容を確認後、<br>
+            1〜2営業日以内にSMS・メールにてご連絡します。<br>
+            ご来店は不要です。
+          </div>
+          <div class="success-ref">
+            <div class="success-ref-label">受付番号</div>
+            <div class="success-ref-num">ADR-2025-084721</div>
+          </div>
+          <div style="font-size:12px; color:#94A3B8; margin-top:8px;">
+            この番号をお控えください
+          </div>
+          <button class="btn-secondary" style="margin-top:24px; width:100%; height:44px;" onclick="goTo(1); resetJPKI();">
+            最初に戻る（デモをもう一度）
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="security">
+    <svg width="12" height="14" viewBox="0 0 12 14" fill="none"><path d="M6 1L1 3v4c0 3 2.5 5.5 5 6 2.5-.5 5-3 5-6V3L6 1z" stroke="#CBD5E1" stroke-width="1.2" fill="none"/></svg>
+    SSL暗号化通信　｜　個人情報保護方針に基づき安全に管理されます
+  </div>
+
+</main>
+
+<script>
+function goTo(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + n).classList.add('active');
+  updateSteps(n);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateSteps(n) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('si-' + i);
+    const circle = el.querySelector('.step-circle');
+    if (i < n) {
+      el.className = 'step-item done';
+      circle.textContent = '✓';
+    } else if (i === n) {
+      el.className = 'step-item active';
+      circle.textContent = i;
+    } else {
+      el.className = 'step-item pending';
+      circle.textContent = i;
+    }
+    if (i < 4) {
+      el.style.setProperty('--line-color', i < n ? '#0D3B8C' : '#CBD5E1');
+    }
+  }
+  document.querySelectorAll('.step-item:not(:last-child)').forEach((el, idx) => {
+    const isDone = idx + 1 < n;
+    el.style.cssText = el.style.cssText;
+  });
+}
+
+function startJPKI() {
+  const loading = document.getElementById('jpki-loading');
+  const result = document.getElementById('jpki-result');
+  const before = document.getElementById('jpki-before-result');
+  loading.style.display = 'flex';
+  before.style.display = 'none';
+  document.getElementById('si-3').className = 'step-item active';
+  document.getElementById('si-3').querySelector('.step-circle').textContent = '3';
+  setTimeout(() => {
+    loading.style.display = 'none';
+    result.style.display = 'block';
+    document.getElementById('si-2').className = 'step-item done';
+    document.getElementById('si-2').querySelector('.step-circle').textContent = '✓';
+    document.getElementById('si-3').className = 'step-item active';
+  }, 2200);
+}
+
+function resetJPKI() {
+  document.getElementById('jpki-loading').style.display = 'none';
+  document.getElementById('jpki-result').style.display = 'none';
+  document.getElementById('jpki-before-result').style.display = 'block';
+}
+</script>
+</body>
+</html>
